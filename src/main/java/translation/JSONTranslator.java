@@ -60,8 +60,15 @@ public class JSONTranslator implements Translator {
                         String translation = countryData.getString(key);
                         translations.put(countryCode + "-" + languageCode, translation);
 
+
+
                         if (!languages.contains(languageCode)) {
                             languages.add(languageCode);
+
+                        }
+                        if (!languageCodes.contains(languageCode)) {
+                            languageCodes.add(languageCode);
+
                         }
                     }
                 }
