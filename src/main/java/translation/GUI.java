@@ -1,7 +1,14 @@
 package translation;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import javax.swing.*;
 import java.awt.event.*;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 
 // TODO Task D: Update the GUI for the program to align with UI shown in the README example.
@@ -11,50 +18,66 @@ import java.awt.event.*;
 //            the GUI.
 public class GUI {
 
+
+
     public static void main(String[] args) {
+
+        JSONTranslation jsonTranslation = new JSONTranslation();
+        LanguageCodeConverter languageCodeConverter = new LanguageCodeConverter();
+
         SwingUtilities.invokeLater(() -> {
             JPanel countryPanel = new JPanel();
             JTextField countryField = new JTextField(10);
             countryField.setText("can");
             countryField.setEditable(false); // we only support the "can" country code for now
-            countryPanel.add(new JLabel("Country:"));
-            countryPanel.add(countryField);
 
             JPanel languagePanel = new JPanel();
             JTextField languageField = new JTextField(10);
-            languagePanel.add(new JLabel("Language:"));
-            languagePanel.add(languageField);
+
+            Translator json = new JSONTranslator();
+            LanguageCodeConverter converter = new LanguageCodeConverter();
+
+            JComboBox<String> languageComboBox = new JComboBox<>();
 
             JPanel buttonPanel = new JPanel();
-            JButton submit = new JButton("Submit");
-            buttonPanel.add(submit);
 
             JLabel resultLabelText = new JLabel("Translation:");
             buttonPanel.add(resultLabelText);
-            JLabel resultLabel = new JLabel("\t\t\t\t\t\t\t");
+            JLabel resultLabel = new JLabel("");  // use the converter variable to get the arguements for translate
             buttonPanel.add(resultLabel);
 
 
-            // adding listener for when the user clicks the submit button
-            submit.addActionListener(new ActionListener() {
+
+            languageComboBox.addItemListener(new ItemListener() {
+
+                /**
+                 * Invoked when an item has been selected or deselected by the user.
+                 * The code written for this method performs the operations
+                 * that need to occur when an item is selected (or deselected).
+                 *
+                 * @param e the event to be processed
+                 */
                 @Override
-                public void actionPerformed(ActionEvent e) {
-                    String language = languageField.getText();
-                    String country = countryField.getText();
+                public void itemStateChanged(ItemEvent e) {
 
-                    // for now, just using our simple translator, but
-                    // we'll need to use the real JSON version later.
-                    Translator translator = new CanadaTranslator();
+                    if (e.getStateChange() == ItemEvent.SELECTED) {
+                        String language = languageComboBox.getSelectedItem().toString();
+                        String languageCode = languageCodeConverter.fromLanguage(language);
 
-                    String result = translator.translate(country, language);
-                    if (result == null) {
-                        result = "no translation found!";
+
+                        resultLabelText.setText("Translation: " +  jsonTranslation.getCanadaCountryNameTranslation(languageCode));
                     }
-                    resultLabel.setText(result);
-
                 }
 
+
             });
+
+            for(String languageCode : json.getLanguageCodes()) {
+                String country = converter.fromLanguageCode(languageCode);
+                languageComboBox.addItem(country);
+            }
+
+            languagePanel.add(languageComboBox);
 
             JPanel mainPanel = new JPanel();
             mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -66,6 +89,86 @@ public class GUI {
             frame.setContentPane(mainPanel);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.pack();
+            frame.setVisible(true);
+
+
+        });
+    }
+}
+
+class JSONTranslation {
+
+    public static final int CANADA_INDEX = 30;
+    private final JSONArray jsonArray;
+
+    public JSONTranslation() {
+        try {
+            // this next line of code reads in a file from the resources folder as a String,
+            // which we then create a new JSONArray object from.
+            String jsonString = Files.readString(Paths.get(getClass().getClassLoader()
+                    .getResource("sample.json").toURI()));
+            this.jsonArray = new JSONArray(jsonString);
+        } catch (IOException | URISyntaxException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public String getCanadaCountryNameTranslation(String countryCode) {
+
+        JSONObject canada = jsonArray.getJSONObject(CANADA_INDEX);
+        return canada.getString(countryCode);
+    }
+}
+
+class ComboBoxDemo {
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+
+            JPanel languagePanel = new JPanel();
+            languagePanel.add(new JLabel("Language:"));
+
+            Translator translator = new CanadaTranslator();
+
+            // create combobox, add country codes into it, and add it to our panel
+            JComboBox<String> languageComboBox = new JComboBox<>();
+            for(String countryCode : translator.getLanguageCodes()) {
+                languageComboBox.addItem(countryCode);
+            }
+            languagePanel.add(languageComboBox);
+
+            // add listener for when an item is selected.
+            languageComboBox.addItemListener(new ItemListener() {
+
+                /**
+                 * Invoked when an item has been selected or deselected by the user.
+                 * The code written for this method performs the operations
+                 * that need to occur when an item is selected (or deselected).
+                 *
+                 * @param e the event to be processed
+                 */
+                @Override
+                public void itemStateChanged(ItemEvent e) {
+
+                    if (e.getStateChange() == ItemEvent.SELECTED) {
+                        String country = languageComboBox.getSelectedItem().toString();
+                        JOptionPane.showMessageDialog(null, "user selected " + country + "!");
+                    }
+                }
+
+
+            });
+
+            // assemble our full panel and create the JFrame to put everything in
+            JPanel mainPanel = new JPanel();
+            mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+            mainPanel.add(languagePanel);
+
+            JFrame frame = new JFrame("JComboBox Demo");
+            frame.setContentPane(mainPanel);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.pack();
+            frame.setLocationRelativeTo(null); // place in centre of screen
             frame.setVisible(true);
 
 
